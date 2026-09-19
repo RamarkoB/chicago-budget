@@ -1,6 +1,5 @@
 # imports
 import pandas as pd
-import matplotlib as plt
 import math
 
 # constants
@@ -49,12 +48,12 @@ def fmtCode(code, length):
 def cleanData():
     df = pd.DataFrame()
     for year in years:
-        dfYear = pd.read_csv(f"data/{year}-ordinance.csv")
+        dfYear = pd.read_csv(f"./python/data/{year}-ordinance.csv")
         dfYear["year"] = year
         df = pd.concat([df, dfYear], ignore_index=True)
 
     functionalCategories = pd.read_csv(
-        "labels/categories.csv", header=None, index_col=0
+        "./python/labels/categories.csv", header=None, index_col=0
     )[1]
 
     # clean rows and columns
@@ -109,4 +108,5 @@ def cleanData():
         .reset_index(drop=True)
     )
 
-    trimmedDf.to_csv("data/ordinance.csv", index=False)
+    trimmedDf.to_csv("./python/data/ordinance.csv", index=False)
+    trimmedDf.to_csv("./page/static/ordinance.csv", index=False)

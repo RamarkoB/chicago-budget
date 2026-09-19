@@ -390,7 +390,7 @@ def makeCSV(ls, fileName, titleCase=False):
     if titleCase:
         series = series.apply(cleanTitle)
 
-    series.to_csv(f"labels/{fileName}.csv", header=False)
+    series.to_csv(f"./python/labels/{fileName}.csv", header=False)
     return series
 
 
