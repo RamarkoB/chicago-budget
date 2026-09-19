@@ -398,15 +398,16 @@ def splitList(ls, fileName, titleCase=False):
     makeCSV(list(map(lambda x: x.split(" - "), ls)), fileName, titleCase)
 
 
-Path("labels").mkdir(parents=True, exist_ok=True)
+def labelData():
+    Path("labels").mkdir(parents=True, exist_ok=True)
 
-categoryMatches = []
+    # match categories
+    categoryMatches = []
+    for key, value in categories.items():
+        for code in value:
+            categoryMatches.append([code, key])
 
-for key, value in categories.items():
-    for code in value:
-        categoryMatches.append([code, key])
-
-splitList(depts, "depts", True)
-splitList(accounts, "accounts")
-splitList(fundsCodes, "fundCodes")
-makeCSV(categoryMatches, "categories")
+    splitList(depts, "depts", True)
+    splitList(accounts, "accounts")
+    splitList(fundsCodes, "fundCodes")
+    makeCSV(categoryMatches, "categories")

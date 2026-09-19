@@ -11,7 +11,7 @@ client = Socrata("data.cityofchicago.org", None)
 #                  username="user@example.com",
 #                  password="AFakePassword")
 
-dataset_id_to_file_name = {
+fileDatasets = {
     "drv3-jzqp": "2011-ordinance.csv",
     "8ix6-nb7q": "2012-ordinance.csv",
     "8dps-5d4x": "2012-recommendations.csv",
@@ -45,8 +45,9 @@ dataset_id_to_file_name = {
     "axxr-vais": "2026-recommendations.csv",
 }
 
-for dataset_id, file_name in dataset_id_to_file_name.items():
-    print(f"Downloading dataset with id {dataset_id} into {file_name}...")
-    results = client.get(dataset_id, limit=50_000)
-    df = pd.DataFrame.from_records(results)
-    df.to_csv(f"data/{file_name}", index=False)
+
+def pullData():
+    for datasetId, fileName in fileDatasets.items():
+        print(f"Downloading {fileName}...")
+        results = client.get(datasetId, limit=50_000)
+        pd.DataFrame.from_records(results).to_csv(f"data/{fileName}", index=False)
