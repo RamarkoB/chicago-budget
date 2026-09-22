@@ -1,5 +1,13 @@
 import * as d3 from 'npm:d3';
 
+type DataFileName = 'ordinance' | 'depts';
+// | 'accounts'
+// | 'categories'
+// | 'fundCodes';
+
+type DataOfFile<T extends DataFileName> =
+    T extends 'ordinance' ? BudgetData : DeptData;
+
 type BudgetData = {
     year: number;
     functionalCategory: string;
@@ -10,35 +18,50 @@ type BudgetData = {
     amount: number;
 };
 
-const importData = async () => {
-    const response = await fetch('./ordinance.csv');
-    const textData = await response.text();
-
-    return textData
-        .split('\n')
-        .slice(1, -1)
-        .map<BudgetData>((row) => {
-            const split = row.split(',');
-            return {
-                year: Number(split[0]),
-                functionalCategory: split[1],
-                departmentNumber: split[2],
-                appropriationAccount: split[3],
-                fundType: split[4],
-                fundCode: split[5],
-                amount: Number(split[6]),
-            };
-        });
+type DeptData = {
+    deptNumber: string;
+    deptName: string;
 };
 
-const getUnique = <T extends keyof BudgetData>(data: BudgetData[], key: T) => {
-    const budgetYearSet = data.reduce<Set<BudgetData[typeof key]>>(
-        (acc, row) => {
-            acc.add(row[key]);
-            return acc;
-        },
-        new Set(),
-    );
+const parseBudgetData =
+    <T extends DataFileName>(fileName: T) =>
+    (row: string): DataOfFile<T> => {
+        const split = row.split(',');
+
+        switch (fileName) {
+            case 'ordinance':
+                return {
+                    year: Number(split[0]),
+                    functionalCategory: split[1],
+                    departmentNumber: split[2],
+                    appropriationAccount: split[3],
+                    fundType: split[4],
+                    fundCode: split[5],
+                    amount: Number(split[6]),
+                } as DataOfFile<T>;
+
+            case 'depts':
+                return {
+                    deptNumber: split[0],
+                    deptName: split[1],
+                } as DataOfFile<T>;
+        }
+    };
+
+const importData = async <T extends DataFileName>(fileName: T) => {
+    const response = await fetch(`./data/${fileName}.csv`);
+    const textData = await response.text();
+    return textData.split('\n').slice(1, -1).map(parseBudgetData(fileName));
+};
+
+const getUnique = <T extends keyof U, U extends DataOfFile<DataFileName>>(
+    data: U[],
+    key: T,
+) => {
+    const budgetYearSet = data.reduce<Set<U[typeof key]>>((acc, row) => {
+        acc.add(row[key]);
+        return acc;
+    }, new Set());
 
     return [...budgetYearSet];
 };
@@ -144,12 +167,17 @@ const createBudgetGraph = (budgetData: BudgetData[]) => {
 const graphBudget = (
     container: HTMLElement,
     budgetData: BudgetData[],
-    category: string,
+    options: { category: string; department: string },
 ) => {
     const data =
-        category === 'All' ? budgetData : (
-            budgetData.filter((row) => row.functionalCategory === category)
-        );
+        options.category === 'All' && options.department === 'All' ? budgetData
+        : options.category !== 'All' ?
+            budgetData.filter(
+                (row) => row.functionalCategory === options.category,
+            )
+        :   budgetData.filter(
+                (row) => row.departmentNumber === options.department,
+            );
 
     const budgetNode = createBudgetGraph(data);
     if (!budgetNode) return;
@@ -157,33 +185,57 @@ const graphBudget = (
     container.replaceChildren(budgetNode);
 };
 
-const appendOption = (categorySelector: HTMLElement, category: string) => {
+const appendOption = (
+    categorySelector: HTMLElement,
+    text: string,
+    value: string,
+) => {
     const option = document.createElement('option');
-    option.innerText = category;
+    option.innerText = text;
+    option.value = value;
     categorySelector.append(option);
+    return option;
 };
 
 const main = async () => {
-    const budgetData = await importData();
+    const budgetData = await importData('ordinance');
+    const deptsData = await importData('depts');
 
-    const categorySelector = document.getElementsByTagName('select')[0];
-    if (!categorySelector) return;
+    const categorySelector = document
+        .getElementsByTagName('select')
+        .namedItem('categories');
+    const deptSelector = document
+        .getElementsByTagName('select')
+        .namedItem('departments');
+    if (!categorySelector || !deptSelector) return;
 
     const container = document.getElementById('container');
     if (!container) return;
 
     const categories = getUnique(budgetData, 'functionalCategory');
-    console.log(categories);
-
-    appendOption(categorySelector, 'All');
-    categories.forEach((category) => appendOption(categorySelector, category));
-
+    appendOption(categorySelector, 'All', 'All');
+    categories.forEach((category) =>
+        appendOption(categorySelector, category, category),
+    );
     categorySelector.addEventListener('change', () => {
         const category = categorySelector?.value;
-        graphBudget(container, budgetData, category);
+        graphBudget(container, budgetData, { category, department: 'All' });
     });
 
-    graphBudget(container, budgetData, 'All');
+    appendOption(deptSelector, 'All', 'All');
+    deptsData.forEach((dept) =>
+        appendOption(
+            deptSelector,
+            `${dept.deptNumber} - ${dept.deptName}`,
+            dept.deptNumber,
+        ),
+    );
+    deptSelector.addEventListener('change', () => {
+        const department = deptSelector?.value;
+        graphBudget(container, budgetData, { category: 'All', department });
+    });
+
+    graphBudget(container, budgetData, { category: 'All', department: 'All' });
 };
 
 main();

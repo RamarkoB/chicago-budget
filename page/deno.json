@@ -1,7 +1,7 @@
 {
     "tasks": {
         "build": "deno run -A build.ts",
-        "dev": "deno run -A --watch=src/,static/ ./build.ts"
+        "dev": "deno run -A --watch=src/,static/,data/ ./build.ts"
     },
     "imports": {
         "@deno/esbuild-plugin": "jsr:@deno/esbuild-plugin@^1.2.1",

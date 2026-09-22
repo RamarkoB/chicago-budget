@@ -52,9 +52,9 @@ def cleanData():
         dfYear["year"] = year
         df = pd.concat([df, dfYear], ignore_index=True)
 
-    functionalCategories = pd.read_csv(
-        "./python/labels/categories.csv", header=None, index_col=0
-    )[1]
+    functionalCategories = pd.read_csv("./python/labels/categories.csv", index_col=0)[
+        "category"
+    ]
 
     # clean rows and columns
     df["amount"] = df.apply(getRowAmount, axis=1)
@@ -109,4 +109,4 @@ def cleanData():
     )
 
     trimmedDf.to_csv("./python/data/ordinance.csv", index=False)
-    trimmedDf.to_csv("./page/static/ordinance.csv", index=False)
+    trimmedDf.to_csv("./page/data/ordinance.csv", index=False)

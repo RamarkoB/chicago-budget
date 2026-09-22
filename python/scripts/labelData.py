@@ -22,12 +22,17 @@ depts = [
     "25 - CITY CLERK",
     "27 - FINANCE",
     "28 - CITY TREASURER'S OFFICE",
+    "29 - DEPARTMENT OF REVENUE",
     "30 - ADMINISTRATIVE HEARINGS",
     "31 - LAW",
+    "32 - OFFICE OF COMPLIANCE",
     "33 - HUMAN RESOURCES",
     "35 - PROCUREMENT SERVICES",
+    # "38 - ASSETS, INFORMATION, AND SERVICES (AIS)", ?????????
+    # "38 - GENERAL SERVICES",
     "38 - FLEET & FACILITY MANAGEMENT",
     "39 - BOARD OF ELECTIONS COMMISSIONERS",
+    "40 - DEPARTMENT OF FLEET MANAGEMENT",
     "41 - HEALTH",
     "45 - COMMISSION ON HUMAN RELATIONS",
     "48 - MAYOR'S OFFICE FOR PEOPLE WITH DISABILITIES",
@@ -35,6 +40,7 @@ depts = [
     "51 - PUBLIC SAFETY ADMINSTRATION",
     "54 - PLANNING AND DEVELOPMENT",
     "55 - CHICAGO POLICE BOARD",
+    "56 - INDEPENDENT POLICE REVIEW AUTHORITY (IPRA)",
     "57 - CHICAGO POLICE DEPARTMENT",
     "58 - EMERGENCY MANAGEMENT COMMUNICATION",
     "59 - CHICAGO FIRE DEPARTMENT",
@@ -384,22 +390,27 @@ def cleanTitle(row):
     return row
 
 
-def makeCSV(ls, fileName, titleCase=False):
-    series = pd.DataFrame(ls).sort_values(by=[0]).set_index(0)[1]
+def makeCSV(ls, fileName, columns, titleCase=False):
+    df = pd.DataFrame(ls).sort_values(by=[0])
+    df.columns = columns
+    df = df.set_index(columns[0])
+    series = df[columns[1]]
 
     if titleCase:
         series = series.apply(cleanTitle)
 
-    series.to_csv(f"./python/labels/{fileName}.csv", header=False)
+    series.to_csv(f"./python/labels/{fileName}.csv")
+    series.to_csv(f"./page/data/{fileName}.csv")
     return series
 
 
-def splitList(ls, fileName, titleCase=False):
-    makeCSV(list(map(lambda x: x.split(" - "), ls)), fileName, titleCase)
+def splitList(ls, fileName, columns, titleCase=False):
+    makeCSV(list(map(lambda x: x.split(" - ", 1), ls)), fileName, columns, titleCase)
 
 
 def labelData():
     Path("labels").mkdir(parents=True, exist_ok=True)
+    Path("./page/data").mkdir(parents=True, exist_ok=True)
 
     # match categories
     categoryMatches = []
@@ -407,7 +418,11 @@ def labelData():
         for code in value:
             categoryMatches.append([code, key])
 
-    splitList(depts, "depts", True)
-    splitList(accounts, "accounts")
-    splitList(fundsCodes, "fundCodes")
-    makeCSV(categoryMatches, "categories")
+    splitList(depts, "depts", ["deptNum", "deptName"], True)
+    splitList(
+        accounts,
+        "accounts",
+        ["accountNum", "accountName"],
+    )
+    splitList(fundsCodes, "fundCodes", ["fundNum", "fundName"])
+    makeCSV(categoryMatches, "categories", ["deptNum", "category"])
