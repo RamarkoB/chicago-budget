@@ -220,6 +220,7 @@ const main = async () => {
     categorySelector.addEventListener('change', () => {
         const category = categorySelector?.value;
         graphBudget(container, budgetData, { category, department: 'All' });
+        deptSelector.value = 'All';
     });
 
     appendOption(deptSelector, 'All', 'All');
@@ -233,6 +234,7 @@ const main = async () => {
     deptSelector.addEventListener('change', () => {
         const department = deptSelector?.value;
         graphBudget(container, budgetData, { category: 'All', department });
+        categorySelector.value = 'All';
     });
 
     graphBudget(container, budgetData, { category: 'All', department: 'All' });
