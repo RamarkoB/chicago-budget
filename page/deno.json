@@ -8,5 +8,8 @@
         "@std/assert": "jsr:@std/assert@1",
         "@types/d3": "npm:@types/d3@^7.4.3",
         "d3": "npm:d3@^7.9.0"
+    },
+    "compilerOptions": {
+        "lib": ["dom", "dom.iterable", "deno.window"]
     }
 }

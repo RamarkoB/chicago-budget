@@ -31,7 +31,19 @@ const importData = async () => {
         });
 };
 
-const graphBudget = (budgetData: BudgetData[]) => {
+const getUnique = <T extends keyof BudgetData>(data: BudgetData[], key: T) => {
+    const budgetYearSet = data.reduce<Set<BudgetData[typeof key]>>(
+        (acc, row) => {
+            acc.add(row[key]);
+            return acc;
+        },
+        new Set(),
+    );
+
+    return [...budgetYearSet];
+};
+
+const createBudgetGraph = (budgetData: BudgetData[]) => {
     // Declare the chart dimensions and margins.
     const width = 640;
     const height = 400;
@@ -40,12 +52,7 @@ const graphBudget = (budgetData: BudgetData[]) => {
     const marginBottom = 30;
     const marginLeft = 40;
 
-    const years = [
-        ...budgetData.reduce<Set<number>>((acc, row) => {
-            acc.add(row.year);
-            return acc;
-        }, new Set()),
-    ];
+    const years = getUnique(budgetData, 'year');
 
     const budgets = years.flatMap((year) => {
         const { local, grants } = budgetData
@@ -92,14 +99,6 @@ const graphBudget = (budgetData: BudgetData[]) => {
         ),
     );
 
-    console.log(
-        d3.index(
-            budgetsTidy,
-            (d) => d.year,
-            (d) => d.type,
-        ),
-    );
-
     const color = d3
         .scaleOrdinal()
         .domain(series.map((d) => d.key))
@@ -139,13 +138,52 @@ const graphBudget = (budgetData: BudgetData[]) => {
         .text((d) => d.key);
 
     // Append the SVG element.
-    container.append(svg.node());
+    return svg.node();
+};
+
+const graphBudget = (
+    container: HTMLElement,
+    budgetData: BudgetData[],
+    category: string,
+) => {
+    const data =
+        category === 'All' ? budgetData : (
+            budgetData.filter((row) => row.functionalCategory === category)
+        );
+
+    const budgetNode = createBudgetGraph(data);
+    if (!budgetNode) return;
+
+    container.replaceChildren(budgetNode);
+};
+
+const appendOption = (categorySelector: HTMLElement, category: string) => {
+    const option = document.createElement('option');
+    option.innerText = category;
+    categorySelector.append(option);
 };
 
 const main = async () => {
     const budgetData = await importData();
 
-    graphBudget(budgetData);
+    const categorySelector = document.getElementsByTagName('select')[0];
+    if (!categorySelector) return;
+
+    const container = document.getElementById('container');
+    if (!container) return;
+
+    const categories = getUnique(budgetData, 'functionalCategory');
+    console.log(categories);
+
+    appendOption(categorySelector, 'All');
+    categories.forEach((category) => appendOption(categorySelector, category));
+
+    categorySelector.addEventListener('change', () => {
+        const category = categorySelector?.value;
+        graphBudget(container, budgetData, category);
+    });
+
+    graphBudget(container, budgetData, 'All');
 };
 
 main();
