@@ -66,7 +66,7 @@ const getUnique = <T extends keyof U, U extends DataOfFile<DataFileName>>(
     return [...budgetYearSet];
 };
 
-const createBudgetGraph = (budgetData: BudgetData[]) => {
+const createBudgetGraph = (budgetData: BudgetData[], years: number[]) => {
     // Declare the chart dimensions and margins.
     const width = 640;
     const height = 400;
@@ -74,8 +74,6 @@ const createBudgetGraph = (budgetData: BudgetData[]) => {
     const marginRight = 20;
     const marginBottom = 30;
     const marginLeft = 40;
-
-    const years = getUnique(budgetData, 'year');
 
     const budgets = years.flatMap((year) => {
         const { local, grants } = budgetData
@@ -94,10 +92,14 @@ const createBudgetGraph = (budgetData: BudgetData[]) => {
         return { year, local, grants, total: local + grants };
     });
 
-    const budgetsTidy = budgets.flatMap(({ year, local, grants }) => [
-        { year, type: 'local', value: local },
-        { year, type: 'grants', value: grants },
-    ]);
+    const budgetsTidy = years.flatMap((year) => {
+        const yearBudget = budgets.find((budgetRow) => budgetRow.year === year);
+        return [
+            { year, type: 'local', value: yearBudget?.local ?? 0 },
+            { year, type: 'grants', value: yearBudget?.grants ?? 0 },
+        ];
+    });
+    console.log(budgetsTidy);
 
     // Declare the x (horizontal position) scale.
     const x = d3
@@ -179,7 +181,8 @@ const graphBudget = (
                 (row) => row.departmentNumber === options.department,
             );
 
-    const budgetNode = createBudgetGraph(data);
+    const years = getUnique(budgetData, 'year');
+    const budgetNode = createBudgetGraph(data, years);
     if (!budgetNode) return;
 
     container.replaceChildren(budgetNode);
