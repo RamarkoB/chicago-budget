@@ -280,6 +280,31 @@ const graphDonuts = (
     container.replaceChildren(categoryDonut, departmentDonut, fundTypeBar);
 };
 
+// Accounts 9980-9987 are the Corporate, O'Hare, Midway, Water, Sewer,
+// Emergency Communication and Library funds paying into the City's four
+// pension funds, which then appropriate the same dollars again. In 2026 they
+// total $1,220,866,110, matching the "Pension Allocation" / "Advance Pension
+// Payment" revenue lines of funds 0681-0684 in the FY2026 Annual
+// Appropriation Ordinance. Part of its $1,700,089,446 "Transfers between
+// Funds" deduction.
+const pensionTransferAccounts = new Set([
+    '9980',
+    '9981',
+    '9982',
+    '9983',
+    '9984',
+    '9985',
+    '9986',
+    '9987',
+]);
+
+const withoutPensionTransfers = (budgetData: BudgetData[], exclude: boolean) =>
+    exclude ?
+        budgetData.filter(
+            (row) => !pensionTransferAccounts.has(row.appropriationAccount),
+        )
+    :   budgetData;
+
 const appendOption = (
     categorySelector: HTMLElement,
     text: string,
@@ -293,7 +318,14 @@ const appendOption = (
 };
 
 const main = async () => {
-    const budgetData = await importData('ordinance');
+    const allBudgetData = await importData('ordinance');
+    const transferToggle = document.getElementById(
+        'exclude-transfers',
+    ) as HTMLInputElement | null;
+    let budgetData = withoutPensionTransfers(
+        allBudgetData,
+        transferToggle?.checked ?? true,
+    );
     const deptsData = await importData('depts');
 
     const categorySelector = document
@@ -349,6 +381,17 @@ const main = async () => {
     );
 
     graphDonuts(donutContainer, budgetData, deptsData, { year: years[0] });
+
+    transferToggle?.addEventListener('change', () => {
+        budgetData = withoutPensionTransfers(allBudgetData, transferToggle.checked);
+        graphBudget(container, budgetData, {
+            category: categorySelector.value,
+            department: deptSelector.value,
+        });
+        graphDonuts(donutContainer, budgetData, deptsData, {
+            year: Number(yearSelector.value),
+        });
+    });
 };
 
 main();

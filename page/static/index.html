@@ -28,6 +28,7 @@
             .share-segment { min-width: 4px; }
             .share-segment:first-child { border-radius: 6px 0 0 6px; }
             .share-segment:last-child { border-radius: 0 6px 6px 0; }
+            .toggle { display: block; margin: 12px 0; font-size: 14px; }
         </style>
     </head>
 
@@ -36,6 +37,11 @@
         <span>-- or --</span>
         <select id="departments"></select>
     </div>
+
+    <label class="toggle">
+        <input type="checkbox" id="exclude-transfers" checked />
+        Don't double-count pension money moved between City funds
+    </label>
 
     <div id="container"></div>
 
