@@ -1,4 +1,5 @@
 import * as d3 from 'npm:d3';
+import { createDonut, groupSmallSlices, sumSlices } from './donut.ts';
 
 type DataFileName = 'ordinance' | 'depts';
 // | 'accounts'
@@ -188,6 +189,73 @@ const graphBudget = (
     container.replaceChildren(budgetNode);
 };
 
+const fundTypeLabels: Record<string, string> = {
+    LOCAL: 'Local funds',
+    GRANTS: 'Grants',
+    CDBG: 'Community Development Block Grant',
+};
+
+const graphDonuts = (
+    container: HTMLElement,
+    budgetData: BudgetData[],
+    deptsData: DeptData[],
+    options: { year: number; category?: string },
+) => {
+    const yearData = budgetData.filter((row) => row.year === options.year);
+    const amount = (row: BudgetData) => row.amount;
+
+    const byCategory = sumSlices(yearData, (row) => row.functionalCategory, amount);
+    const byFundType = sumSlices(
+        yearData,
+        (row) => fundTypeLabels[row.fundType] ?? row.fundType,
+        amount,
+    );
+    if (byCategory.length === 0) return;
+
+    // Open on the largest category that splits into more than one
+    // department; General Financing is a single 100% ring.
+    const departmentCount = (label: string) =>
+        new Set(
+            yearData
+                .filter((row) => row.functionalCategory === label)
+                .map((row) => row.departmentNumber),
+        ).size;
+    const category =
+        options.category ??
+        (byCategory.find((slice) => departmentCount(slice.label) > 1) ?? byCategory[0])
+            .label;
+    const deptNames = new Map(
+        deptsData.map((dept) => [dept.deptNumber, dept.deptName]),
+    );
+    const byDepartment = groupSmallSlices(
+        sumSlices(
+            yearData.filter((row) => row.functionalCategory === category),
+            (row) => deptNames.get(row.departmentNumber) ?? `Dept ${row.departmentNumber}`,
+            amount,
+        ),
+        8,
+    );
+
+    const categoryDonut = createDonut(byCategory, {
+        title: `${options.year} budget by category (click one)`,
+        selected: category,
+        onSelect: (label) =>
+            graphDonuts(container, budgetData, deptsData, {
+                year: options.year,
+                category: label,
+            }),
+    });
+    const departmentDonut = createDonut(byDepartment, {
+        title: `Departments in ${category}`,
+    });
+    const fundTypeDonut = createDonut(byFundType, {
+        title: `${options.year} budget by fund type`,
+    });
+    if (!categoryDonut || !departmentDonut || !fundTypeDonut) return;
+
+    container.replaceChildren(categoryDonut, departmentDonut, fundTypeDonut);
+};
+
 const appendOption = (
     categorySelector: HTMLElement,
     text: string,
@@ -241,6 +309,22 @@ const main = async () => {
     });
 
     graphBudget(container, budgetData, { category: 'All', department: 'All' });
+
+    const yearSelector = document
+        .getElementsByTagName('select')
+        .namedItem('years');
+    const donutContainer = document.getElementById('donuts');
+    if (!yearSelector || !donutContainer) return;
+
+    const years = getUnique(budgetData, 'year').sort((a, b) => b - a);
+    years.forEach((year) => appendOption(yearSelector, `${year}`, `${year}`));
+    yearSelector.addEventListener('change', () =>
+        graphDonuts(donutContainer, budgetData, deptsData, {
+            year: Number(yearSelector.value),
+        }),
+    );
+
+    graphDonuts(donutContainer, budgetData, deptsData, { year: years[0] });
 };
 
 main();
