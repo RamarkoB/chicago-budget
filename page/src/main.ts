@@ -1,4 +1,11 @@
 import * as d3 from 'npm:d3';
+import {
+    colorScale,
+    createDonut,
+    createShareBar,
+    groupSmallSlices,
+    sumSlices,
+} from './donut.ts';
 
 type DataFileName = 'ordinance' | 'depts';
 // | 'accounts'
@@ -188,6 +195,116 @@ const graphBudget = (
     container.replaceChildren(budgetNode);
 };
 
+const fundTypeLabels: Record<string, string> = {
+    LOCAL: 'Local funds',
+    GRANTS: 'Grants',
+    CDBG: 'Community Development Block Grant',
+};
+
+const graphDonuts = (
+    container: HTMLElement,
+    budgetData: BudgetData[],
+    deptsData: DeptData[],
+    options: { year: number; category?: string },
+) => {
+    const amount = (row: BudgetData) => row.amount;
+    const deptNames = new Map(
+        deptsData.map((dept) => [dept.deptNumber, dept.deptName]),
+    );
+    const deptName = (row: BudgetData) =>
+        deptNames.get(row.departmentNumber) ?? `Dept ${row.departmentNumber}`;
+    const fundTypeName = (row: BudgetData) =>
+        fundTypeLabels[row.fundType] ?? row.fundType;
+
+    // Colors are assigned from all-years totals so they stay put when the
+    // year changes.
+    const categoryColor = colorScale(
+        sumSlices(budgetData, (row) => row.functionalCategory, amount).map(
+            (slice) => slice.label,
+        ),
+    );
+    const fundTypeColor = colorScale(Object.values(fundTypeLabels));
+
+    const yearData = budgetData.filter((row) => row.year === options.year);
+    const byCategory = sumSlices(yearData, (row) => row.functionalCategory, amount);
+    const byFundType = sumSlices(yearData, fundTypeName, amount);
+    if (byCategory.length === 0) return;
+
+    // Open on the largest category that splits into more than one
+    // department; General Financing is a single 100% ring.
+    const departmentCount = (label: string) =>
+        new Set(
+            yearData
+                .filter((row) => row.functionalCategory === label)
+                .map((row) => row.departmentNumber),
+        ).size;
+    const category =
+        options.category ??
+        (byCategory.find((slice) => departmentCount(slice.label) > 1) ?? byCategory[0])
+            .label;
+
+    const inCategory = (row: BudgetData) => row.functionalCategory === category;
+    const departmentColor = colorScale(
+        sumSlices(budgetData.filter(inCategory), deptName, amount).map(
+            (slice) => slice.label,
+        ),
+    );
+    const byDepartment = groupSmallSlices(
+        sumSlices(yearData.filter(inCategory), deptName, amount),
+        6,
+    );
+
+    const categoryDonut = createDonut(byCategory, {
+        title: 'Where the money goes',
+        subtitle: `${options.year} budget by category. Click one to see its departments.`,
+        colorOf: categoryColor,
+        selected: category,
+        onSelect: (label) =>
+            graphDonuts(container, budgetData, deptsData, {
+                year: options.year,
+                category: label,
+            }),
+    });
+    const departmentDonut = createDonut(byDepartment, {
+        title: category,
+        subtitle: `${options.year} budget by department.`,
+        colorOf: departmentColor,
+    });
+    const fundTypeBar = createShareBar(byFundType, {
+        title: 'What kind of money',
+        subtitle: `${options.year} budget by fund type.`,
+        colorOf: fundTypeColor,
+    });
+    if (!categoryDonut || !departmentDonut || !fundTypeBar) return;
+
+    container.replaceChildren(categoryDonut, departmentDonut, fundTypeBar);
+};
+
+// Accounts 9980-9987 are the Corporate, O'Hare, Midway, Water, Sewer,
+// Emergency Communication and Library funds paying into the City's four
+// pension funds, which then appropriate the same dollars again. In 2026 they
+// total $1,220,866,110, matching the "Pension Allocation" / "Advance Pension
+// Payment" revenue lines of funds 0681-0684 in the FY2026 Annual
+// Appropriation Ordinance. Part of its $1,700,089,446 "Transfers between
+// Funds" deduction.
+const pensionTransferAccounts = new Set([
+    '9980',
+    '9981',
+    '9982',
+    '9983',
+    '9984',
+    '9985',
+    '9986',
+    '9987',
+]);
+
+const withoutPensionTransfers = (budgetData: BudgetData[], exclude: boolean) =>
+    exclude ?
+        budgetData.filter(
+            (row) => !pensionTransferAccounts.has(row.appropriationAccount),
+        )
+    :   budgetData;
+
 const appendOption = (
     categorySelector: HTMLElement,
     text: string,
@@ -201,7 +318,14 @@ const appendOption = (
 };
 
 const main = async () => {
-    const budgetData = await importData('ordinance');
+    const allBudgetData = await importData('ordinance');
+    const transferToggle = document.getElementById(
+        'exclude-transfers',
+    ) as HTMLInputElement | null;
+    let budgetData = withoutPensionTransfers(
+        allBudgetData,
+        transferToggle?.checked ?? true,
+    );
     const deptsData = await importData('depts');
 
     const categorySelector = document
@@ -241,6 +365,33 @@ const main = async () => {
     });
 
     graphBudget(container, budgetData, { category: 'All', department: 'All' });
+
+    const yearSelector = document
+        .getElementsByTagName('select')
+        .namedItem('years');
+    const donutContainer = document.getElementById('donuts');
+    if (!yearSelector || !donutContainer) return;
+
+    const years = getUnique(budgetData, 'year').sort((a, b) => b - a);
+    years.forEach((year) => appendOption(yearSelector, `${year}`, `${year}`));
+    yearSelector.addEventListener('change', () =>
+        graphDonuts(donutContainer, budgetData, deptsData, {
+            year: Number(yearSelector.value),
+        }),
+    );
+
+    graphDonuts(donutContainer, budgetData, deptsData, { year: years[0] });
+
+    transferToggle?.addEventListener('change', () => {
+        budgetData = withoutPensionTransfers(allBudgetData, transferToggle.checked);
+        graphBudget(container, budgetData, {
+            category: categorySelector.value,
+            department: deptSelector.value,
+        });
+        graphDonuts(donutContainer, budgetData, deptsData, {
+            year: Number(yearSelector.value),
+        });
+    });
 };
 
 main();
