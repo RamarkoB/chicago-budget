@@ -1,5 +1,11 @@
 import * as d3 from 'npm:d3';
-import { createDonut, groupSmallSlices, sumSlices } from './donut.ts';
+import {
+    colorScale,
+    createDonut,
+    createShareBar,
+    groupSmallSlices,
+    sumSlices,
+} from './donut.ts';
 
 type DataFileName = 'ordinance' | 'depts';
 // | 'accounts'
@@ -201,15 +207,27 @@ const graphDonuts = (
     deptsData: DeptData[],
     options: { year: number; category?: string },
 ) => {
-    const yearData = budgetData.filter((row) => row.year === options.year);
     const amount = (row: BudgetData) => row.amount;
-
-    const byCategory = sumSlices(yearData, (row) => row.functionalCategory, amount);
-    const byFundType = sumSlices(
-        yearData,
-        (row) => fundTypeLabels[row.fundType] ?? row.fundType,
-        amount,
+    const deptNames = new Map(
+        deptsData.map((dept) => [dept.deptNumber, dept.deptName]),
     );
+    const deptName = (row: BudgetData) =>
+        deptNames.get(row.departmentNumber) ?? `Dept ${row.departmentNumber}`;
+    const fundTypeName = (row: BudgetData) =>
+        fundTypeLabels[row.fundType] ?? row.fundType;
+
+    // Colors are assigned from all-years totals so they stay put when the
+    // year changes.
+    const categoryColor = colorScale(
+        sumSlices(budgetData, (row) => row.functionalCategory, amount).map(
+            (slice) => slice.label,
+        ),
+    );
+    const fundTypeColor = colorScale(Object.values(fundTypeLabels));
+
+    const yearData = budgetData.filter((row) => row.year === options.year);
+    const byCategory = sumSlices(yearData, (row) => row.functionalCategory, amount);
+    const byFundType = sumSlices(yearData, fundTypeName, amount);
     if (byCategory.length === 0) return;
 
     // Open on the largest category that splits into more than one
@@ -224,20 +242,22 @@ const graphDonuts = (
         options.category ??
         (byCategory.find((slice) => departmentCount(slice.label) > 1) ?? byCategory[0])
             .label;
-    const deptNames = new Map(
-        deptsData.map((dept) => [dept.deptNumber, dept.deptName]),
+
+    const inCategory = (row: BudgetData) => row.functionalCategory === category;
+    const departmentColor = colorScale(
+        sumSlices(budgetData.filter(inCategory), deptName, amount).map(
+            (slice) => slice.label,
+        ),
     );
     const byDepartment = groupSmallSlices(
-        sumSlices(
-            yearData.filter((row) => row.functionalCategory === category),
-            (row) => deptNames.get(row.departmentNumber) ?? `Dept ${row.departmentNumber}`,
-            amount,
-        ),
-        8,
+        sumSlices(yearData.filter(inCategory), deptName, amount),
+        6,
     );
 
     const categoryDonut = createDonut(byCategory, {
-        title: `${options.year} budget by category (click one)`,
+        title: 'Where the money goes',
+        subtitle: `${options.year} budget by category. Click one to see its departments.`,
+        colorOf: categoryColor,
         selected: category,
         onSelect: (label) =>
             graphDonuts(container, budgetData, deptsData, {
@@ -246,14 +266,18 @@ const graphDonuts = (
             }),
     });
     const departmentDonut = createDonut(byDepartment, {
-        title: `Departments in ${category}`,
+        title: category,
+        subtitle: `${options.year} budget by department.`,
+        colorOf: departmentColor,
     });
-    const fundTypeDonut = createDonut(byFundType, {
-        title: `${options.year} budget by fund type`,
+    const fundTypeBar = createShareBar(byFundType, {
+        title: 'What kind of money',
+        subtitle: `${options.year} budget by fund type.`,
+        colorOf: fundTypeColor,
     });
-    if (!categoryDonut || !departmentDonut || !fundTypeDonut) return;
+    if (!categoryDonut || !departmentDonut || !fundTypeBar) return;
 
-    container.replaceChildren(categoryDonut, departmentDonut, fundTypeDonut);
+    container.replaceChildren(categoryDonut, departmentDonut, fundTypeBar);
 };
 
 const appendOption = (
