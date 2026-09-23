@@ -27,6 +27,18 @@ The FY2026 Annual Appropriation Ordinance (https://www.chicago.gov/content/dam/c
 
 `page/data/ordinance.csv` local funds for 2026 sum to exactly $14,798,710,460, so the data is the gross figure.
 
+Same reconciliation, three years (Summary A of each year's Annual Appropriation Ordinance; [2024](https://www.chicago.gov/content/dam/city/depts/obm/supp_info/2024Budget/2024_Ordinance_Book_web_TOC.pdf), [2025](https://www.chicago.gov/content/dam/city/depts/obm/supp_info/2025Budget/2025_Ordinance_Book_webVersion.pdf)). The revenue and fund-balance columns match the Data Portal revenue files plus `ordinance.csv` to the dollar:
+
+| Local funds | 2024 | 2025 | 2026 |
+|---|---|---|---|
+| Revenue | $13,130,285,000 | $13,509,378,139 | $14,623,624,011 |
+| + Prior-year fund balance | $710,515,000 | $615,282,841 | $175,086,449 |
+| = Total - All Funds | $13,840,800,000 | $14,124,660,980 | $14,798,710,460 |
+| − Transfers between Funds | $1,451,433,000 | $1,622,468,611 | $1,700,089,446 |
+| − Proceeds of Debt | $117,145,000 | $117,145,000 | $125,926,011 |
+| = Net Total | $12,272,222,000 | $12,385,047,369 | $12,972,695,003 |
+| Pension allocations (998x), of the transfers | $1,100,416,830 | $1,256,927,474 | $1,220,866,110 |
+
 **Found so far: pension allocations, $1,220,866,110 of the $1,700,089,446.** Accounts 9980-9987 (all under Finance General) are the Corporate, O'Hare, Midway, Water, Sewer, Emergency Communication and Library funds paying into the four pension funds (0681-0684), which then appropriate the same dollars again. They match, to the dollar, the "Pension Allocation" / "Advance Pension Payment" / "Library Pension Residual Allocation" revenue lines on those funds' Estimated Revenue pages. The page has a checkbox (on by default) that drops these accounts.
 
 Pension allocations by year in `ordinance.csv` (accounts 9980-9987):

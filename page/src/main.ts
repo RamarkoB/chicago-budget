@@ -306,11 +306,12 @@ const withoutPensionTransfers = (budgetData: BudgetData[], exclude: boolean) =>
         )
     :   budgetData;
 
-// Only 2026 revenue is loaded so far (Data Portal dataset nydj-5nax).
-const sankeyYear = 2026;
+// Budget Ordinance - Revenue on the Data Portal: 2024 rmi8-cugu,
+// 2025 e5cq-t86i, 2026 nydj-5nax.
+const revenueYears = [2026, 2025, 2024];
 
-const importRevenue = async (): Promise<RevenueRow[]> => {
-    const response = await fetch(`./data/revenue-${sankeyYear}.csv`);
+const importRevenue = async (year: number): Promise<RevenueRow[]> => {
+    const response = await fetch(`./data/revenue-${year}.csv`);
     return d3.csvParse(await response.text(), (row) => ({
         fundCode: row.fund_code ?? '',
         groupType: row.revenue_group_type ?? '',
@@ -320,10 +321,14 @@ const importRevenue = async (): Promise<RevenueRow[]> => {
     }));
 };
 
-const graphSankey = async (container: HTMLElement, budgetData: BudgetData[]) => {
-    const revenue = await importRevenue();
-    const appropriations = budgetData.filter((row) => row.year === sankeyYear);
-    const node = createSankey(buildFlows(revenue, appropriations), sankeyYear);
+const graphSankey = async (
+    container: HTMLElement,
+    budgetData: BudgetData[],
+    year: number,
+) => {
+    const revenue = await importRevenue(year);
+    const appropriations = budgetData.filter((row) => row.year === year);
+    const node = createSankey(buildFlows(revenue, appropriations), year);
     if (node) container.replaceChildren(node);
 };
 
@@ -406,7 +411,18 @@ const main = async () => {
 
     // Uses every row: the Sankey draws pension transfers as their own link.
     const sankeyContainer = document.getElementById('sankey');
-    if (sankeyContainer) graphSankey(sankeyContainer, allBudgetData);
+    const sankeyYearSelector = document
+        .getElementsByTagName('select')
+        .namedItem('sankey-years');
+    if (sankeyContainer && sankeyYearSelector) {
+        revenueYears.forEach((year) =>
+            appendOption(sankeyYearSelector, `${year}`, `${year}`),
+        );
+        sankeyYearSelector.addEventListener('change', () =>
+            graphSankey(sankeyContainer, allBudgetData, Number(sankeyYearSelector.value)),
+        );
+        graphSankey(sankeyContainer, allBudgetData, revenueYears[0]);
+    }
 
     transferToggle?.addEventListener('change', () => {
         budgetData = withoutPensionTransfers(allBudgetData, transferToggle.checked);
