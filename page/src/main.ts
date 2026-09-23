@@ -6,6 +6,7 @@ import {
     groupSmallSlices,
     sumSlices,
 } from './donut.ts';
+import { buildFlows, createSankey, type RevenueRow } from './sankey.ts';
 
 type DataFileName = 'ordinance' | 'depts';
 // | 'accounts'
@@ -305,6 +306,27 @@ const withoutPensionTransfers = (budgetData: BudgetData[], exclude: boolean) =>
         )
     :   budgetData;
 
+// Only 2026 revenue is loaded so far (Data Portal dataset nydj-5nax).
+const sankeyYear = 2026;
+
+const importRevenue = async (): Promise<RevenueRow[]> => {
+    const response = await fetch(`./data/revenue-${sankeyYear}.csv`);
+    return d3.csvParse(await response.text(), (row) => ({
+        fundCode: row.fund_code ?? '',
+        groupType: row.revenue_group_type ?? '',
+        category: row.revenue_category ?? '',
+        source: row.revenue_source ?? '',
+        amount: Number(row.estimated_revenue),
+    }));
+};
+
+const graphSankey = async (container: HTMLElement, budgetData: BudgetData[]) => {
+    const revenue = await importRevenue();
+    const appropriations = budgetData.filter((row) => row.year === sankeyYear);
+    const node = createSankey(buildFlows(revenue, appropriations), sankeyYear);
+    if (node) container.replaceChildren(node);
+};
+
 const appendOption = (
     categorySelector: HTMLElement,
     text: string,
@@ -381,6 +403,10 @@ const main = async () => {
     );
 
     graphDonuts(donutContainer, budgetData, deptsData, { year: years[0] });
+
+    // Uses every row: the Sankey draws pension transfers as their own link.
+    const sankeyContainer = document.getElementById('sankey');
+    if (sankeyContainer) graphSankey(sankeyContainer, allBudgetData);
 
     transferToggle?.addEventListener('change', () => {
         budgetData = withoutPensionTransfers(allBudgetData, transferToggle.checked);

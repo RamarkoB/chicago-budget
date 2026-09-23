@@ -29,6 +29,10 @@
             .share-segment:first-child { border-radius: 6px 0 0 6px; }
             .share-segment:last-child { border-radius: 0 6px 6px 0; }
             .toggle { display: block; margin: 12px 0; font-size: 14px; }
+            #sankey { margin-top: 20px; max-width: 1100px; }
+            .sankey-scroll { overflow-x: auto; }
+            .sankey { display: block; width: 100%; min-width: 760px; height: auto; }
+            .sankey-label { font-size: 12px; fill: #0b0b0b; paint-order: stroke; stroke: #fcfcfb; stroke-width: 3px; stroke-linejoin: round; }
         </style>
     </head>
 
@@ -51,4 +55,6 @@
     </div>
 
     <div id="donuts"></div>
+
+    <div id="sankey"></div>
 </html>
