@@ -1,4 +1,11 @@
 import * as d3 from 'npm:d3';
+import {
+    colorScale,
+    createDonut,
+    createShareBar,
+    groupSmallSlices,
+    sumSlices,
+} from './donut.ts';
 
 type DataFileName = 'ordinance' | 'depts';
 // | 'accounts'
@@ -188,6 +195,91 @@ const graphBudget = (
     container.replaceChildren(budgetNode);
 };
 
+const fundTypeLabels: Record<string, string> = {
+    LOCAL: 'Local funds',
+    GRANTS: 'Grants',
+    CDBG: 'Community Development Block Grant',
+};
+
+const graphDonuts = (
+    container: HTMLElement,
+    budgetData: BudgetData[],
+    deptsData: DeptData[],
+    options: { year: number; category?: string },
+) => {
+    const amount = (row: BudgetData) => row.amount;
+    const deptNames = new Map(
+        deptsData.map((dept) => [dept.deptNumber, dept.deptName]),
+    );
+    const deptName = (row: BudgetData) =>
+        deptNames.get(row.departmentNumber) ?? `Dept ${row.departmentNumber}`;
+    const fundTypeName = (row: BudgetData) =>
+        fundTypeLabels[row.fundType] ?? row.fundType;
+
+    // Colors are assigned from all-years totals so they stay put when the
+    // year changes.
+    const categoryColor = colorScale(
+        sumSlices(budgetData, (row) => row.functionalCategory, amount).map(
+            (slice) => slice.label,
+        ),
+    );
+    const fundTypeColor = colorScale(Object.values(fundTypeLabels));
+
+    const yearData = budgetData.filter((row) => row.year === options.year);
+    const byCategory = sumSlices(yearData, (row) => row.functionalCategory, amount);
+    const byFundType = sumSlices(yearData, fundTypeName, amount);
+    if (byCategory.length === 0) return;
+
+    // Open on the largest category that splits into more than one
+    // department; General Financing is a single 100% ring.
+    const departmentCount = (label: string) =>
+        new Set(
+            yearData
+                .filter((row) => row.functionalCategory === label)
+                .map((row) => row.departmentNumber),
+        ).size;
+    const category =
+        options.category ??
+        (byCategory.find((slice) => departmentCount(slice.label) > 1) ?? byCategory[0])
+            .label;
+
+    const inCategory = (row: BudgetData) => row.functionalCategory === category;
+    const departmentColor = colorScale(
+        sumSlices(budgetData.filter(inCategory), deptName, amount).map(
+            (slice) => slice.label,
+        ),
+    );
+    const byDepartment = groupSmallSlices(
+        sumSlices(yearData.filter(inCategory), deptName, amount),
+        6,
+    );
+
+    const categoryDonut = createDonut(byCategory, {
+        title: 'Where the money goes',
+        subtitle: `${options.year} budget by category. Click one to see its departments.`,
+        colorOf: categoryColor,
+        selected: category,
+        onSelect: (label) =>
+            graphDonuts(container, budgetData, deptsData, {
+                year: options.year,
+                category: label,
+            }),
+    });
+    const departmentDonut = createDonut(byDepartment, {
+        title: category,
+        subtitle: `${options.year} budget by department.`,
+        colorOf: departmentColor,
+    });
+    const fundTypeBar = createShareBar(byFundType, {
+        title: 'What kind of money',
+        subtitle: `${options.year} budget by fund type.`,
+        colorOf: fundTypeColor,
+    });
+    if (!categoryDonut || !departmentDonut || !fundTypeBar) return;
+
+    container.replaceChildren(categoryDonut, departmentDonut, fundTypeBar);
+};
+
 const appendOption = (
     categorySelector: HTMLElement,
     text: string,
@@ -241,6 +333,22 @@ const main = async () => {
     });
 
     graphBudget(container, budgetData, { category: 'All', department: 'All' });
+
+    const yearSelector = document
+        .getElementsByTagName('select')
+        .namedItem('years');
+    const donutContainer = document.getElementById('donuts');
+    if (!yearSelector || !donutContainer) return;
+
+    const years = getUnique(budgetData, 'year').sort((a, b) => b - a);
+    years.forEach((year) => appendOption(yearSelector, `${year}`, `${year}`));
+    yearSelector.addEventListener('change', () =>
+        graphDonuts(donutContainer, budgetData, deptsData, {
+            year: Number(yearSelector.value),
+        }),
+    );
+
+    graphDonuts(donutContainer, budgetData, deptsData, { year: years[0] });
 };
 
 main();
