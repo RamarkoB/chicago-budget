@@ -1,6 +1,6 @@
 # Welcome to the Chicago Budget Dashboard Project
 
-# Budget Publications
+
 - Budget Publications: https://www.chicago.gov/city/en/depts/obm/provdrs/budget/svcs/BudgetPublications.html
 -Information from the Office of the Inspector General: https://igchicago.org/information-portal/data-dashboards/city-budget-by-departments/
 - Info from 2026 Budget Breakdown: https://public.tableau.com/app/profile/obm.data.analytics/viz/CityofChicago-BudgetataGlance/ChicagoBudgetataGlance?publish=yes
@@ -21,6 +21,7 @@ Community Development Block Grant (CDBG) funds are provided by federal and state
 
 ## Outstanding Data Tasks:
 - Find Debt Issuances and Internal Transfers
+- Finding Definitions for Appropriation Authorities
 - Start Analysis of Budget Recommendations
 - Compare Budget Recommendations vs Ordinance
 
