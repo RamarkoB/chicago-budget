@@ -1,12 +1,11 @@
 from scripts.pullData import pullData
-from scripts.labelData import labelData
 from scripts.cleanData import cleanData
 
 # We have up-to-date data for chicago budget
+# print("Pulling Data...")
 # pullData()
 
-print("Labelling and Cleaning Data...")
-labelData()
+print("Cleaning Data...")
 cleanData()
 
 print("Done!")

@@ -1,0 +1,45 @@
+deptNum,deptName,category
+01,Office of the Mayor,Finance & Administration
+03,Office of the Inspector General,Regulatory
+05,Budget and Management,Finance & Administration
+06,Technology and Innovation,Finance & Administration
+15,City Council,Legislative & Elections
+21,Department of Housing,City Development
+23,Cultural Affairs and Special Events,City Development
+25,City Clerk,Finance & Administration
+27,Finance,Finance & Administration
+28,City Treasurer's Office,Finance & Administration
+29,Department of Revenue,Finance & Administration
+30,Administrative Hearings,Finance & Administration
+31,Law,Finance & Administration
+32,Office of Compliance,Community Services
+33,Human Resources,Finance & Administration
+35,Procurement Services,Finance & Administration
+38,Fleet & Facility Management,Finance & Administration
+39,Board of Elections Commissioners,Legislative & Elections
+40,Department of Fleet Management,Finance & Administration
+41,Health,Community Services
+45,Commission on Human Relations,Community Services
+48,Mayor's Office for People with Disabilities,Community Services
+50,Family & Support Services,Community Services
+51,Public Safety Adminstration,Public Safety
+54,Planning and Development,City Development
+55,Chicago Police Board,Public Safety
+56,Independent Police Review Authority (Ipra),Public Safety
+57,Chicago Police Department,Public Safety
+58,Emergency Management Communication,Public Safety
+59,Chicago Fire Department,Public Safety
+60,Civilian Office of Police Accountability,Public Safety
+62,Community Commision for Public Safety and Accountability,Public Safety
+67,Buildings,Regulatory
+70,Business Affairs and Consumer Protection,Regulatory
+72,Environment,Regulatory
+73,Animal Care & Control,Regulatory
+77,License Appeal Commission,Regulatory
+78,Board of Ethics,Regulatory
+81,Streets and Sanitation,Infrastructure Services
+84,Chicago Department of Transportation,Infrastructure Services
+85,Aviation,Infrastructure Services
+88,Water Management,Infrastructure Services
+91,Public Library,Community Services
+99,Finance General,General Financing

@@ -1,12 +1,14 @@
 // external imports
 import * as d3 from 'npm:d3';
-import * as d3Sankey from 'npm:d3-sankey';
 
 // internal imports
-import { DataOfFile, DataFileName, BudgetData } from './types.ts';
-import { getUnique } from './utils.ts';
+import { BudgetData, DeptData, FundsData } from './types.ts';
+import { getDict, years } from './utils.ts';
 
-const createBudgetGraph = (budgetData: BudgetData[], years: number[]) => {
+const createBudgetGraph = (
+    budgetData: BudgetData[],
+    fundsDict: Record<string, Omit<FundsData, 'id'>>,
+) => {
     // Declare the chart dimensions and margins.
     const width = 640;
     const height = 400;
@@ -17,10 +19,10 @@ const createBudgetGraph = (budgetData: BudgetData[], years: number[]) => {
 
     const budgets = years.flatMap((year) => {
         const { local, grants } = budgetData
-            .filter((row) => row.year === year)
+            .map((row) => ({ fundCode: row.fundCode, amount: row[year] }))
             .reduce(
                 (acc, row) => {
-                    if (row.fundType === 'LOCAL')
+                    if (fundsDict[row.fundCode].type === 'LOCAL')
                         acc.local = acc.local + row.amount;
                     else acc.grants = acc.grants + row.amount;
 
@@ -39,7 +41,6 @@ const createBudgetGraph = (budgetData: BudgetData[], years: number[]) => {
             { year, type: 'grants', value: yearBudget?.grants ?? 0 },
         ];
     });
-    console.log(budgetsTidy);
 
     // Declare the x (horizontal position) scale.
     const x = d3
@@ -115,20 +116,24 @@ const createBudgetGraph = (budgetData: BudgetData[], years: number[]) => {
 const graphBudget = (
     timeSeries: HTMLElement,
     budgetData: BudgetData[],
+    deptsDict: Record<string, Omit<DeptData, 'id'>>,
+    fundsDict: Record<string, Omit<FundsData, 'id'>>,
     options: { category: string; department: string },
 ) => {
     const data =
         options.category === 'All' && options.department === 'All' ? budgetData
         : options.category !== 'All' ?
-            budgetData.filter(
-                (row) => row.functionalCategory === options.category,
-            )
+            budgetData.filter((row) => {
+                return (
+                    deptsDict[row.departmentNumber].category ===
+                    options.category
+                );
+            })
         :   budgetData.filter(
                 (row) => row.departmentNumber === options.department,
             );
 
-    const years = getUnique(budgetData, 'year');
-    const budgetNode = createBudgetGraph(data, years);
+    const budgetNode = createBudgetGraph(data, fundsDict);
     if (!budgetNode) return;
 
     timeSeries.replaceChildren(budgetNode);

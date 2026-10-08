@@ -48,6 +48,8 @@ fileDatasets = {
 
 def pullData():
     for datasetId, fileName in fileDatasets.items():
-        print(f"Downloading {fileName}...")
+        print(f"   Downloading {fileName}...")
         results = client.get(datasetId, limit=50_000)
-        pd.DataFrame.from_records(results).to_csv(f"./python/data/{fileName}", index=False)
+        pd.DataFrame.from_records(results).to_csv(
+            f"./python/data/{fileName}", index=False
+        )

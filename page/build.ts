@@ -18,6 +18,6 @@ await esbuild.build({
 // Copy index.html to dist directory
 await copyFile('./static/index.html', './dist/index.html');
 // await copyFile('./static/styles.css', './dist/styles.css');
-await copy('./data/', './dist/data', { overwrite: true });
+await copy('../data/', './dist/data', { overwrite: true });
 
 esbuild.stop();
