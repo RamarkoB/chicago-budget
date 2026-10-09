@@ -18,20 +18,15 @@ const createBudgetGraph = (
     const marginLeft = 40;
 
     const budgets = years.flatMap((year) => {
-        const { local, grants } = budgetData
-            .map((row) => ({ fundCode: row.fundCode, amount: row[year] }))
-            .reduce(
-                (acc, row) => {
-                    if (fundsDict[row.fundCode].type === 'LOCAL')
-                        acc.local = acc.local + row.amount;
-                    else acc.grants = acc.grants + row.amount;
+        const { local, grants } = budgetData.reduce(
+            (acc, row) =>
+                fundsDict[row.fundCode].type === 'LOCAL' ?
+                    { grants: acc.grants, local: acc.local + row[year] }
+                :   { grants: acc.grants + row[year], local: acc.local },
+            { local: 0, grants: 0 },
+        );
 
-                    return acc;
-                },
-                { local: 0, grants: 0 },
-            );
-
-        return { year, local, grants, total: local + grants };
+        return { year, local, grants };
     });
 
     const budgetsTidy = years.flatMap((year) => {
@@ -51,7 +46,10 @@ const createBudgetGraph = (
     // Declare the y (vertical position) scale.
     const y = d3
         .scaleLinear()
-        .domain([0, d3.max(budgets, (d) => d.total)] as [number, number])
+        .domain([0, d3.max(budgets, (d) => d.local + d.grants)] as [
+            number,
+            number,
+        ])
         .range([height - marginBottom, marginTop]);
 
     const series = d3
