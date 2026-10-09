@@ -527,6 +527,7 @@ def cleanData():
     )
 
     fundsDF = pd.concat([fundsSeries, fundTypes], axis=1)
+    fundsDF.index.name = "fundNum"
     fundsDF["fundName"] = fundsDF.apply(
         lambda row: (
             df[df["fundCode"] == row.name].iloc[0]["fundDescription"]
